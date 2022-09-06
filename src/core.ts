@@ -7,6 +7,8 @@ import readline, { Interface as IReadline } from "readline";
 import { Pdf } from "./libs/pdf";
 import { IPdf, ICreateOptions } from "./interfaces/pdf.interface";
 import notifier, { NodeNotifier } from "node-notifier";
+// import { marked } from 'marked';
+const { marked } = require('marked');
 
 export class Project {
   private readonly octokit: Octokit;
@@ -138,8 +140,12 @@ export class Project {
 
   async runSettings() {
     const orgs = await this.octokit.request("GET /user/orgs", {});
+    const users = _.map(orgs.data, (item) => {
+      return _.pick(item, ['id', 'login'])
+    });
+
     console.log("@@@@ AUTH USER ORGS @@@@");
-    console.log(orgs.data);
+    console.log(users);
     console.log("@@@@ ~~~ @@@@ ~~~ @@@@\n");
 
     this.setup.orgName = await this.readlineAsync(
@@ -178,8 +184,12 @@ export class Project {
         repo: this.setup.repoName,
       }
     );
+    const projects = _.map(repoProjects.data, (item) => {
+      return _.pick(item, ['number', 'name', 'id', 'state'])
+    });
+
     console.log("\n@@@@ SELECTED REPO PROJECT @@@@");
-    console.log(repoProjects.data);
+    console.log(projects);
     console.log("@@@@ ~~~ @@@@ ~~~ @@@@\n");
 
     this.setup.projectId = await this.readlineAsync(
@@ -203,8 +213,12 @@ export class Project {
       }
     );
 
+    const columns = _.map(projectColumns.data, (item) => {
+      return _.pick(item, ['id', 'name'])
+    });
+
     console.log("\n@@@@ PROJECT COLUMNS @@@@");
-    console.log(projectColumns.data);
+    console.log(columns);
     console.log("@@@@ ~~~ @@@@ ~~~ @@@@\n");
 
     this.setup.projectColName = await this.readlineAsync(
@@ -233,9 +247,11 @@ export class Project {
     this.readline.close();
   }
 
-  private handleIssueBodyStr(body: string, maxLen: number = 300) {
+  private handleIssueBodyStr(body: string, maxLen: number = 1000) {
     try {
-      return body.length > maxLen ? body.substring(0, maxLen) : body;
+      // change markdown to html
+      const html = marked.parse(body);
+      return html.length > maxLen ? html.substring(0, maxLen) : html;
     } catch (error) {
       return "";
     }
